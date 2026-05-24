@@ -323,9 +323,17 @@ export default async function Home({
               </div>
 
               <div className="space-y-5">
-                <section className="rounded-md border border-zinc-200 bg-white p-4">
-                  <h2 className="font-semibold">伸びている動画</h2>
-                  <div className="mt-3 space-y-3">
+                <section className="overflow-hidden rounded-md border border-[#d7dee8] bg-white shadow-sm">
+                  <div className="flex items-center gap-3 border-b border-[#d7dee8] bg-[#f5f8fc] px-4 py-3">
+                    <div className="flex size-8 items-center justify-center rounded-md bg-[#1f2937] text-[#c7d2fe]">
+                      <BarChart3 className="size-4" />
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-[#172033]">伸びている動画</h2>
+                      <p className="mt-1 text-xs text-[#667085]">直近の伸びが大きい動画を確認できます。</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3 p-4">
                     {hotVideos.map((video) => (
                       <Link key={video.id} href={`/videos/${video.id}`} className="block rounded-md border border-zinc-100 p-3 hover:bg-zinc-50">
                         <div className="line-clamp-2 text-sm font-semibold">{video.title}</div>

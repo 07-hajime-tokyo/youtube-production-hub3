@@ -86,7 +86,7 @@ export function HandoffLinksPanel({ links }: { links: HandoffLinkItem[] }) {
               event.stopPropagation();
               setModalOpen(true);
             }}
-            className="inline-flex h-8 items-center gap-1 rounded-md border border-[#d8cbb8] bg-white px-3 text-xs font-semibold text-[#6d604c]"
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-[#211e18] bg-[#211e18] px-3 text-xs font-semibold text-[#fff7e6] shadow-sm transition hover:bg-[#3a3329]"
           >
             <Plus className="size-3.5" />
             追加
@@ -94,7 +94,7 @@ export function HandoffLinksPanel({ links }: { links: HandoffLinkItem[] }) {
           <button
             type="button"
             onClick={() => setOpen((current) => !current)}
-            className="inline-flex h-8 items-center gap-1 rounded-md border border-[#d8cbb8] bg-white px-3 text-xs font-semibold text-[#6d604c]"
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-[#cbb89b] bg-[#efe5d4] px-3 text-xs font-semibold text-[#5f4f3b] transition hover:bg-[#e5d6be]"
           >
             {open ? "閉じる" : "開く"}
             <ChevronDown className={`size-3.5 transition ${open ? "rotate-180" : ""}`} />
