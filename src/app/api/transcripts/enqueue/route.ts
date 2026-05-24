@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRouteUser } from "@/lib/auth";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const schema = z
   .object({
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
   if (error || !supabase || !user) {
     return NextResponse.json({ error }, { status: error === "Supabase is not configured." ? 503 : 401 });
   }
+  const writeSupabase = createSupabaseAdminClient() ?? supabase;
 
   const body = await request.json().catch(() => ({}));
   const parsed = schema.safeParse(body);
@@ -25,7 +27,7 @@ export async function POST(request: Request) {
   }
 
   if (parsed.data.videoId) {
-    const { data: existingVideo, error: lookupError } = await supabase
+    const { data: existingVideo, error: lookupError } = await writeSupabase
       .from("videos")
       .select("id, transcripts(id)")
       .eq("video_id", parsed.data.videoId)
@@ -37,7 +39,7 @@ export async function POST(request: Request) {
     if (hasTranscript) return NextResponse.json({ status: "already_done" });
   }
 
-  const { data, error: insertError } = await supabase
+  const { data, error: insertError } = await writeSupabase
     .from("worker_jobs")
     .insert({
       type: "transcribe",
