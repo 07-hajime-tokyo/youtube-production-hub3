@@ -38,6 +38,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
+          cache-dependency-path: scripts/requirements-transcribe.txt
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
@@ -46,7 +47,7 @@ jobs:
         run: npm ci
 
       - name: Install transcription dependencies
-        run: python3 -m pip install --upgrade pip yt-dlp faster-whisper
+        run: python3 -m pip install --upgrade pip -r scripts/requirements-transcribe.txt
 
       - name: Process one queued transcription job
         run: npm run worker -- next --type transcribe
