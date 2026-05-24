@@ -20,6 +20,7 @@ const TRANSCRIBE_MODEL = process.env.TRANSCRIBE_MODEL || "small";
 const YTDLP_BIN = process.env.YTDLP_BIN || "/opt/homebrew/bin/yt-dlp";
 const PYTHON_BIN = process.env.PYTHON_BIN || "/usr/bin/python3";
 const WORKER_POLL_INTERVAL_MS = Number(process.env.WORKER_POLL_INTERVAL_MS || 5000);
+const WORKER_ID = process.env.WORKER_ID || "local-worker";
 
 type SheetRow = string[];
 type DriveFile = {
@@ -618,7 +619,7 @@ async function markJob(supabase: SupabaseClient, jobId: string, status: "running
     .update({
       status,
       locked_at: status === "running" ? new Date().toISOString() : null,
-      locked_by: status === "running" ? "local-worker" : null,
+      locked_by: status === "running" ? WORKER_ID : null,
       last_error: error ? (error instanceof Error ? error.message : String(error)) : null,
     })
     .eq("id", jobId);
@@ -760,7 +761,7 @@ Options:
       push: options.push === true,
     });
   } else if (command === "next") {
-    await processNextJob();
+    await processNextJob(typeof options.type === "string" ? options.type as WorkerJob["type"] : undefined);
   } else if (command === "watch") {
     await watchJobs(typeof options.type === "string" ? options.type as WorkerJob["type"] : undefined);
   } else {

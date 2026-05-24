@@ -1,0 +1,52 @@
+name: Transcribe worker
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+concurrency:
+  group: transcribe-worker
+  cancel-in-progress: false
+
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TRANSCRIBE_MODEL: ${{ vars.TRANSCRIBE_MODEL || 'small' }}
+      TRANSCRIPT_MARKDOWN_EXPORT: "0"
+      YTDLP_BIN: yt-dlp
+      PYTHON_BIN: python3
+      WORKER_ID: github-actions-transcribe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install transcription dependencies
+        run: python3 -m pip install --upgrade pip yt-dlp faster-whisper
+
+      - name: Process one queued transcription job
+        run: npm run worker -- next --type transcribe
