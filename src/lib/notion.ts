@@ -66,6 +66,12 @@ export type NotionHandoffLink = {
   priority: string;
 };
 
+export type NotionHandoffLinkInput = {
+  title: string;
+  href: string;
+  note?: string;
+};
+
 export type NotionWorkspaceData = {
   tasks: NotionTask[];
   todayTasks: NotionTask[];
@@ -213,6 +219,40 @@ function mapHandoffLink(page: NotionPage): NotionHandoffLink {
     useToday: checkedFromProperty(properties["今日使う"]),
     priority: textFromProperty(properties["優先度"]) || "中",
   };
+}
+
+function handoffLinkProperties(input: NotionHandoffLinkInput) {
+  return {
+    "リンク名": { title: richText(input.title || "無題のリンク") },
+    "リンク": { url: input.href },
+    "説明": { rich_text: richText(input.note) },
+    "カテゴリ": { select: { name: "その他" } },
+    "優先度": { select: { name: "中" } },
+    "固定表示": { checkbox: true },
+    "今日使う": { checkbox: true },
+  };
+}
+
+export async function createNotionHandoffLink(input: NotionHandoffLinkInput) {
+  const config = getNotionConfig();
+  if (!config.linksDatabaseId) throw new Error("Notion links database is not configured.");
+
+  const page = await notionRequest<NotionPageResponse>("/pages", {
+    method: "POST",
+    body: JSON.stringify({
+      parent: { database_id: config.linksDatabaseId },
+      properties: handoffLinkProperties(input),
+    }),
+  });
+
+  return mapHandoffLink(page);
+}
+
+export async function deleteNotionHandoffLink(id: string) {
+  await notionRequest<NotionPageResponse>(`/pages/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ archived: true }),
+  });
 }
 
 export async function getNotionWorkspaceData(): Promise<NotionWorkspaceData | null> {
