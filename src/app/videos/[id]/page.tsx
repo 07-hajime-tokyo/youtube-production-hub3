@@ -17,6 +17,7 @@ export default async function VideoDetailPage({
   const [video, dashboard] = await Promise.all([getVideoDetail(id), getDashboardData()]);
 
   if (!video) notFound();
+  const transcriptReady = video.hasTranscript || Boolean(video.transcriptText);
 
   return (
     <main className="min-h-screen bg-[#f7f6f2] p-4 sm:p-6">
@@ -60,10 +61,15 @@ export default async function VideoDetailPage({
                     <ExternalLink className="size-4" />
                     YouTube
                   </a>
-                  {video.hasTranscript ? (
+                  {transcriptReady ? (
                     <span className="inline-flex h-9 items-center gap-2 rounded-md bg-emerald-50 px-3 text-xs font-semibold text-emerald-700">
                       <FileText className="size-4" />
                       起こし済み
+                    </span>
+                  ) : video.hasTranscriptJob ? (
+                    <span className="inline-flex h-9 items-center gap-2 rounded-md bg-amber-50 px-3 text-xs font-semibold text-amber-700">
+                      <FileText className="size-4" />
+                      処理中
                     </span>
                   ) : (
                     <QueueButton endpoint="/api/transcripts/enqueue" payload={{ videoId: video.videoId, url: video.url }} variant="dark">
@@ -176,13 +182,17 @@ export default async function VideoDetailPage({
             <div>
               <h2 className="font-semibold">文字起こし</h2>
               <div className="mt-1 text-xs text-zinc-500">
-                {video.hasTranscript
+                {transcriptReady
                   ? `${video.transcriptModel ?? "whisper"} / ${video.transcriptLanguage ?? "言語不明"}`
-                  : "まだ文字起こしされていません。"}
+                  : video.hasTranscriptJob
+                    ? "文字起こし処理中です。"
+                    : "まだ文字起こしされていません。"}
               </div>
             </div>
-            {video.hasTranscript ? (
+            {transcriptReady ? (
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">起こし済み</span>
+            ) : video.hasTranscriptJob ? (
+              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">処理中</span>
             ) : null}
           </div>
 

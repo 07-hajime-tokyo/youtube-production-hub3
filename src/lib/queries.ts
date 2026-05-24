@@ -101,6 +101,19 @@ function videoIdFromJobPayload(payload: Record<string, unknown>) {
   return payload.url.match(/[?&]v=([^&]+)/)?.[1] ?? payload.url.split("/shorts/")[1]?.split(/[?&]/)[0] ?? null;
 }
 
+async function hasPendingTranscriptJob(supabase: NonNullable<Awaited<ReturnType<typeof createSupabaseServerClient>>>, videoId: string) {
+  const { data } = await supabase
+    .from("worker_jobs")
+    .select("id")
+    .eq("type", "transcribe")
+    .in("status", ["queued", "running"])
+    .or(`payload->>videoId.eq.${videoId},payload->>url.ilike.%${videoId}%`)
+    .limit(1)
+    .maybeSingle();
+
+  return Boolean(data);
+}
+
 function mapVideo(row: RawVideo): DashboardVideo {
   const metrics = [...(row.video_metrics_daily ?? [])].sort((a, b) =>
     (b.metric_date ?? "").localeCompare(a.metric_date ?? ""),
@@ -263,5 +276,9 @@ export async function getVideoDetail(idOrVideoId: string) {
     .maybeSingle();
 
   if (error || !data) return null;
-  return mapVideo(data as unknown as RawVideo);
+  const video = mapVideo(data as unknown as RawVideo);
+  return {
+    ...video,
+    hasTranscriptJob: !video.hasTranscript && await hasPendingTranscriptJob(supabase, video.videoId),
+  };
 }
