@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBaseUrl, isEmailAllowed } from "@/lib/env";
 
@@ -24,7 +25,8 @@ export async function GET(request: Request) {
   }
 
   if (user?.email) {
-    await supabase.from("team_members").upsert(
+    const adminSupabase = createSupabaseAdminClient();
+    await (adminSupabase ?? supabase).from("team_members").upsert(
       {
         email: user.email.toLowerCase(),
         display_name: user.user_metadata?.full_name ?? user.email,
@@ -36,4 +38,3 @@ export async function GET(request: Request) {
 
   return NextResponse.redirect(`${origin}/`);
 }
-
