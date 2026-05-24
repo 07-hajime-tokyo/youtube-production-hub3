@@ -4,7 +4,6 @@ import {
   BookOpenText,
   CalendarDays,
   Clock3,
-  Database,
   FileText,
   GitBranch,
   Search,
@@ -14,6 +13,7 @@ import {
 import { HandoffLinksPanel } from "@/components/handoff-links-panel";
 import { signOut } from "@/app/actions";
 import { QueueButton } from "@/components/queue-button";
+import { RankingFilters } from "@/components/ranking-filters";
 import { ScheduleWorkspace } from "@/components/schedule-workspace";
 import { StatusBadge } from "@/components/status-form";
 import { VideoRankingTable } from "@/components/video-ranking-table";
@@ -97,7 +97,6 @@ export default async function Home({
     { icon: Video, label: "動画ランキング" },
     { icon: FileText, label: "文字起こしDB" },
     { icon: BookOpenText, label: "制作進行" },
-    { icon: Database, label: "Supabase" },
   ];
   const kpis = [
     { label: "総再生数", value: formatCompact(totalViews), sub: "D0最新値の合計", icon: BarChart3 },
@@ -163,18 +162,6 @@ export default async function Home({
               </div>
             ))}
           </nav>
-          <div className="mt-auto rounded-md bg-white/5 p-3 text-xs text-white/70">
-            <div className="mb-2 flex items-center justify-between text-white">
-              <span className="font-semibold">Supabase</span>
-              <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] text-emerald-200">
-                {data.mode}
-              </span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full rounded-full bg-emerald-400" style={{ width: `${transcriptRate}%` }} />
-            </div>
-            <div className="mt-2 font-mono text-[11px]">transcripts {transcriptRate}%</div>
-          </div>
         </aside>
 
         <section className="flex min-w-0 flex-1 flex-col">
@@ -337,31 +324,12 @@ export default async function Home({
                       <p className="mt-1 text-xs text-[#667085]">Drive由来の動画台帳をSupabase中心で管理します。</p>
                     </div>
                   </div>
-                  <form action="/" className="flex flex-wrap items-center gap-2">
-                    <input type="hidden" name="q" value={params.q ?? ""} />
-                    <select
-                      name="channel"
-                      defaultValue={params.channel ?? ""}
-                      className="h-9 rounded-md border border-[#cfd8e3] bg-white px-2 text-xs text-[#172033]"
-                    >
-                      <option value="">全チャンネル</option>
-                      {data.channels.map((channel) => (
-                        <option key={channel.id} value={channel.name}>
-                          {channel.name}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      name="transcript"
-                      defaultValue={params.transcript ?? ""}
-                      className="h-9 rounded-md border border-[#cfd8e3] bg-white px-2 text-xs text-[#172033]"
-                    >
-                      <option value="">文字起こし 全件</option>
-                      <option value="missing">未文字起こし</option>
-                      <option value="done">文字起こし済み</option>
-                    </select>
-                    <button className="h-9 rounded-md bg-[#1f2937] px-3 text-xs font-semibold text-white">絞込</button>
-                  </form>
+                  <RankingFilters
+                    channels={data.channels}
+                    currentChannel={params.channel}
+                    currentTranscript={params.transcript}
+                    currentQuery={params.q}
+                  />
                 </div>
                 <VideoRankingTable videos={filteredVideos} disabled={data.mode === "demo"} />
               </div>
