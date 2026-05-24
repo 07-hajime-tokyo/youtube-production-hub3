@@ -1,0 +1,40 @@
+{
+  "name": "youtube-production-hub",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "setup:check": "tsx scripts/check-setup.ts",
+    "worker": "tsx scripts/worker.ts",
+    "worker:watch": "tsx scripts/worker.ts watch",
+    "worker:sync-drive": "tsx scripts/worker.ts sync-drive",
+    "worker:transcribe": "tsx scripts/worker.ts transcribe",
+    "worker:export-github": "tsx scripts/worker.ts export-github"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.105.4",
+    "clsx": "^2.1.1",
+    "dotenv": "^17.4.2",
+    "googleapis": "^171.4.0",
+    "lucide-react": "^1.14.0",
+    "next": "16.2.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "tsx": "^4.21.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
