@@ -5,20 +5,16 @@ import {
   CalendarDays,
   Clock3,
   FileText,
-  GitBranch,
   Search,
-  UploadCloud,
   Video,
 } from "lucide-react";
 import { HandoffLinksPanel } from "@/components/handoff-links-panel";
 import { signOut } from "@/app/actions";
-import { QueueButton } from "@/components/queue-button";
 import { RankingFilters } from "@/components/ranking-filters";
 import { ScheduleWorkspace } from "@/components/schedule-workspace";
 import { StatusBadge } from "@/components/status-form";
 import { VideoRankingTable } from "@/components/video-ranking-table";
 import { requireAppUser } from "@/lib/auth";
-import { DEFAULT_DRIVE_FOLDER_ID } from "@/lib/env";
 import { formatCompact, formatNumber } from "@/lib/format";
 import { getNotionWorkspaceData } from "@/lib/notion";
 import { getDashboardData } from "@/lib/queries";
@@ -189,14 +185,6 @@ export default async function Home({
               </button>
             </form>
             <div className="ml-auto flex items-center gap-2">
-              <QueueButton endpoint="/api/sync/drive" payload={{ folderId: DEFAULT_DRIVE_FOLDER_ID }} variant="light">
-                <UploadCloud className="size-4" />
-                Drive同期
-              </QueueButton>
-              <QueueButton endpoint="/api/github/export" variant="dark">
-                <GitBranch className="size-4" />
-                GitHub保存
-              </QueueButton>
               {user ? (
                 <form action={signOut}>
                   <button className="h-9 rounded-md border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700">
