@@ -142,7 +142,9 @@ export async function getDashboardData(filters: DashboardVideoFilters = {}): Pro
   const { configured } = getSupabasePublicConfig();
   if (!configured) return demoDashboardData;
 
-  const supabase = isLocalAuthBypassEnabled() ? createSupabaseAdminClient() : await createSupabaseServerClient();
+  const supabase =
+    createSupabaseAdminClient() ??
+    (isLocalAuthBypassEnabled() ? null : await createSupabaseServerClient());
   if (!supabase) return demoDashboardData;
 
   let videosQuery = supabase
@@ -248,7 +250,9 @@ export async function getVideoDetail(idOrVideoId: string) {
     return demoVideos.find((video) => video.id === idOrVideoId || video.videoId === idOrVideoId) ?? null;
   }
 
-  const supabase = isLocalAuthBypassEnabled() ? createSupabaseAdminClient() : await createSupabaseServerClient();
+  const supabase =
+    createSupabaseAdminClient() ??
+    (isLocalAuthBypassEnabled() ? null : await createSupabaseServerClient());
   if (!supabase) return null;
 
   const { data, error } = await supabase
