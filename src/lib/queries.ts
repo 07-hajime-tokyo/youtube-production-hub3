@@ -216,11 +216,18 @@ export async function getDashboardData(filters: DashboardVideoFilters = {}): Pro
       .filter((videoId): videoId is string => Boolean(videoId)),
   );
   const rawVideos = (videosResult.data ?? []) as unknown as RawVideo[];
+  const videoDbIds = rawVideos.map((row) => row.id);
+  const { data: transcriptRows } = videoDbIds.length
+    ? await supabase.from("transcripts").select("video_id").in("video_id", videoDbIds)
+    : { data: [] };
+  const transcriptVideoDbIds = new Set((transcriptRows ?? []).map((row) => row.video_id as string));
   const videos = rawVideos.map((row) => {
     const video = mapVideo(row);
+    const hasTranscript = video.hasTranscript || transcriptVideoDbIds.has(row.id);
     return {
       ...video,
-      hasTranscriptJob: !video.hasTranscript && pendingTranscriptVideoIds.has(video.videoId),
+      hasTranscript,
+      hasTranscriptJob: !hasTranscript && pendingTranscriptVideoIds.has(video.videoId),
     };
   });
   const rawChannels = (channelsResult.data ?? []) as unknown as RawChannel[];
