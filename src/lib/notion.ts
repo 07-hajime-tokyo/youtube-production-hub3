@@ -1,4 +1,11 @@
+import { revalidateTag, unstable_cache } from "next/cache";
 import { getNotionConfig } from "@/lib/env";
+
+const NOTION_WORKSPACE_CACHE_TAG = "notion-workspace";
+
+function revalidateNotionWorkspace() {
+  revalidateTag(NOTION_WORKSPACE_CACHE_TAG, { expire: 0 });
+}
 
 type NotionProperty =
   | { type: "title"; title?: { plain_text?: string }[] }
@@ -188,6 +195,7 @@ export async function createNotionTask(input: NotionTaskInput) {
     }),
   });
 
+  revalidateNotionWorkspace();
   return mapTask(page);
 }
 
@@ -197,6 +205,7 @@ export async function updateNotionTask(id: string, input: NotionTaskInput) {
     body: JSON.stringify({ properties: taskProperties(input) }),
   });
 
+  revalidateNotionWorkspace();
   return mapTask(page);
 }
 
@@ -205,6 +214,7 @@ export async function deleteNotionTask(id: string) {
     method: "PATCH",
     body: JSON.stringify({ archived: true }),
   });
+  revalidateNotionWorkspace();
 }
 
 function mapHandoffLink(page: NotionPage): NotionHandoffLink {
@@ -245,6 +255,7 @@ export async function createNotionHandoffLink(input: NotionHandoffLinkInput) {
     }),
   });
 
+  revalidateNotionWorkspace();
   return mapHandoffLink(page);
 }
 
@@ -253,9 +264,10 @@ export async function deleteNotionHandoffLink(id: string) {
     method: "PATCH",
     body: JSON.stringify({ archived: true }),
   });
+  revalidateNotionWorkspace();
 }
 
-export async function getNotionWorkspaceData(): Promise<NotionWorkspaceData | null> {
+async function getNotionWorkspaceDataUncached(): Promise<NotionWorkspaceData | null> {
   const config = getNotionConfig();
   if (!config.configured || !config.tasksDatabaseId || !config.linksDatabaseId) return null;
 
@@ -280,3 +292,8 @@ export async function getNotionWorkspaceData(): Promise<NotionWorkspaceData | nu
     return null;
   }
 }
+
+export const getNotionWorkspaceData = unstable_cache(getNotionWorkspaceDataUncached, ["notion-workspace-data"], {
+  revalidate: 60,
+  tags: [NOTION_WORKSPACE_CACHE_TAG],
+});

@@ -36,6 +36,8 @@ export default async function VideoDetailPage({
                   src={video.thumbnailUrl}
                   alt=""
                   className="aspect-video w-full rounded-md border border-zinc-200 object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 <div className="flex aspect-video w-full items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-500">

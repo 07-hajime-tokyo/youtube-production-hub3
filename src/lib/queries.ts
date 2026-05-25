@@ -164,7 +164,7 @@ export async function getDashboardData(filters: DashboardVideoFilters = {}): Pro
     .from("videos")
     .select(filters.transcript === "done" ? videoSelectWithTranscript : videoSelect)
     .order("published_on", { ascending: false, nullsFirst: false })
-    .limit(200);
+    .limit(50);
 
   if (filters.channel) {
     videosQuery = videosQuery.eq("channel_id", filters.channel);

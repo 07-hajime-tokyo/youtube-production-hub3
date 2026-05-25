@@ -50,6 +50,7 @@ export function VideoRankingTable({
                         alt=""
                         className="h-12 w-20 shrink-0 rounded border border-[#d7dee8] object-cover"
                         loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded border border-[#d7dee8] bg-[#eef3f8] text-[10px] font-semibold text-[#7c8797]">
