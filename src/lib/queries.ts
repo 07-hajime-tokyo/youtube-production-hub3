@@ -167,7 +167,7 @@ export async function getDashboardData(filters: DashboardVideoFilters = {}): Pro
     .limit(200);
 
   if (filters.channel) {
-    videosQuery = videosQuery.eq("channels.youtube_channel_name", filters.channel);
+    videosQuery = videosQuery.eq("channel_id", filters.channel);
   }
   if (filters.transcript === "missing") {
     videosQuery = videosQuery.is("transcripts.id", null);

@@ -47,7 +47,7 @@ export function RankingFilters({
       >
         <option value="">全チャンネル</option>
         {channels.map((channel) => (
-          <option key={channel.id} value={channel.name}>
+          <option key={channel.id} value={channel.id}>
             {channel.name}
           </option>
         ))}
