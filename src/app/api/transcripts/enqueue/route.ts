@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRouteUser } from "@/lib/auth";
+import { createYouTubeChangeLog } from "@/lib/queries";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const schema = z
@@ -50,5 +51,14 @@ export async function POST(request: Request) {
     .single();
 
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
+  await createYouTubeChangeLog({
+    action: "enqueue",
+    targetType: "worker_job",
+    targetId: data.id,
+    title: "文字起こしを投入",
+    detail: parsed.data.videoId ?? parsed.data.url ?? "",
+    actorEmail: user.email,
+    metadata: parsed.data,
+  });
   return NextResponse.json({ jobId: data.id, status: "queued" });
 }

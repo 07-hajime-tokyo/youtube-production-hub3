@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRouteUser } from "@/lib/auth";
 import { DEFAULT_DRIVE_FOLDER_ID } from "@/lib/env";
+import { createYouTubeChangeLog } from "@/lib/queries";
 
 const schema = z.object({
   folderId: z.string().min(1).default(DEFAULT_DRIVE_FOLDER_ID),
@@ -30,6 +31,14 @@ export async function POST(request: Request) {
     .single();
 
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
+  await createYouTubeChangeLog({
+    action: "enqueue",
+    targetType: "worker_job",
+    targetId: data.id,
+    title: "Drive同期を投入",
+    detail: parsed.data.folderId,
+    actorEmail: user.email,
+    metadata: { folderId: parsed.data.folderId },
+  });
   return NextResponse.json({ jobId: data.id, status: "queued" });
 }
-

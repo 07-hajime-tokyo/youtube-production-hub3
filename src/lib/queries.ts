@@ -75,6 +75,32 @@ type RawWorkerJob = {
   payload: Record<string, unknown>;
 };
 
+export type ChangeLogItem = {
+  id: string;
+  title: string;
+  detail: string;
+  at: string;
+  actor: string;
+};
+
+function formatLogDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+async function getReadableSupabaseClient() {
+  const { configured } = getSupabasePublicConfig();
+  if (!configured) return null;
+  return createSupabaseAdminClient() ?? (isLocalAuthBypassEnabled() ? null : await createSupabaseServerClient());
+}
+
 export type DashboardVideoFilters = {
   q?: string;
   channel?: string;
@@ -155,9 +181,7 @@ export async function getDashboardData(filters: DashboardVideoFilters = {}): Pro
   const { configured } = getSupabasePublicConfig();
   if (!configured) return demoDashboardData;
 
-  const supabase =
-    createSupabaseAdminClient() ??
-    (isLocalAuthBypassEnabled() ? null : await createSupabaseServerClient());
+  const supabase = await getReadableSupabaseClient();
   if (!supabase) return demoDashboardData;
 
   let videosQuery = supabase
@@ -270,9 +294,7 @@ export async function getVideoDetail(idOrVideoId: string) {
     return demoVideos.find((video) => video.id === idOrVideoId || video.videoId === idOrVideoId) ?? null;
   }
 
-  const supabase =
-    createSupabaseAdminClient() ??
-    (isLocalAuthBypassEnabled() ? null : await createSupabaseServerClient());
+  const supabase = await getReadableSupabaseClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -288,4 +310,50 @@ export async function getVideoDetail(idOrVideoId: string) {
     ...video,
     hasTranscriptJob: !video.hasTranscript && await hasPendingTranscriptJob(supabase, video.videoId),
   };
+}
+
+export async function getYouTubeChangeLogs() {
+  const supabase = await getReadableSupabaseClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("change_logs")
+    .select("id, title, detail, actor_email, created_at")
+    .eq("app_key", "youtube")
+    .order("created_at", { ascending: false })
+    .limit(8);
+
+  if (error || !data) return [];
+
+  return data.map((row): ChangeLogItem => ({
+    id: row.id,
+    title: row.title,
+    detail: row.detail ?? "",
+    at: formatLogDate(row.created_at),
+    actor: row.actor_email ?? "system",
+  }));
+}
+
+export async function createYouTubeChangeLog(input: {
+  action: string;
+  targetType: string;
+  targetId?: string;
+  title: string;
+  detail?: string;
+  actorEmail?: string | null;
+  metadata?: Record<string, unknown>;
+}) {
+  const supabase = createSupabaseAdminClient();
+  if (!supabase) return;
+
+  await supabase.from("change_logs").insert({
+    app_key: "youtube",
+    action: input.action,
+    target_type: input.targetType,
+    target_id: input.targetId ?? null,
+    title: input.title,
+    detail: input.detail ?? null,
+    actor_email: input.actorEmail ?? "system",
+    metadata: input.metadata ?? {},
+  });
 }

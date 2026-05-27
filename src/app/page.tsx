@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Clock3,
   FileText,
+  History,
   Search,
   Video,
 } from "lucide-react";
@@ -17,7 +18,7 @@ import { VideoRankingTable } from "@/components/video-ranking-table";
 import { requireAppUser } from "@/lib/auth";
 import { formatCompact, formatNumber } from "@/lib/format";
 import { getNotionWorkspaceData } from "@/lib/notion";
-import { getDashboardData } from "@/lib/queries";
+import { getDashboardData, getYouTubeChangeLogs } from "@/lib/queries";
 import type { ProductionStatus } from "@/lib/types";
 
 function getTokyoDateParts(date = new Date()) {
@@ -66,7 +67,11 @@ export default async function Home({
 }) {
   const user = await requireAppUser();
   const params = await searchParams;
-  const [data, notionData] = await Promise.all([getDashboardData(params), getNotionWorkspaceData()]);
+  const [data, notionData, changeHistory] = await Promise.all([
+    getDashboardData(params),
+    getNotionWorkspaceData(),
+    getYouTubeChangeLogs(),
+  ]);
   const filteredVideos = data.videos;
   const totalViews = data.videos.reduce((sum, video) => sum + video.latestViews, 0);
   const transcriptCount = data.videos.filter((video) => video.hasTranscript).length;
@@ -355,6 +360,39 @@ export default async function Home({
                         <span className="font-mono text-zinc-600">{count}</span>
                       </div>
                     ))}
+                  </div>
+                </section>
+
+                <section className="overflow-hidden rounded-md border border-[#d7dee8] bg-white shadow-sm">
+                  <div className="flex items-center gap-3 border-b border-[#d7dee8] bg-[#f5f8fc] px-4 py-3">
+                    <div className="flex size-8 items-center justify-center rounded-md bg-[#1f2937] text-[#c7d2fe]">
+                      <History className="size-4" />
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-[#172033]">変更履歴</h2>
+                      <p className="mt-1 text-xs text-[#667085]">ステータス変更やジョブ投入を記録します。</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 p-4">
+                    {changeHistory.map((item) => (
+                      <div key={item.id} className="rounded-md border border-zinc-100 p-3 text-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="line-clamp-1 font-semibold text-zinc-800">{item.title}</div>
+                            <div className="mt-1 text-xs text-zinc-500">{item.detail}</div>
+                          </div>
+                          <div className="shrink-0 text-right text-[11px] text-zinc-500">
+                            <div>{item.at}</div>
+                            <div>{item.actor}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {!changeHistory.length ? (
+                      <div className="rounded-md border border-dashed border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-500">
+                        変更履歴はまだありません。
+                      </div>
+                    ) : null}
                   </div>
                 </section>
               </div>
