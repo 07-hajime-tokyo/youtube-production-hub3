@@ -49,5 +49,14 @@ jobs:
       - name: Install transcription dependencies
         run: python3 -m pip install --upgrade pip -r scripts/requirements-transcribe.txt
 
+      - name: Restore YouTube cookies
+        if: ${{ secrets.YOUTUBE_COOKIES_BASE64 != '' }}
+        env:
+          YOUTUBE_COOKIES_BASE64: ${{ secrets.YOUTUBE_COOKIES_BASE64 }}
+        run: |
+          printf '%s' "$YOUTUBE_COOKIES_BASE64" | base64 --decode > "$RUNNER_TEMP/youtube-cookies.txt"
+          chmod 600 "$RUNNER_TEMP/youtube-cookies.txt"
+          echo "YTDLP_COOKIES_PATH=$RUNNER_TEMP/youtube-cookies.txt" >> "$GITHUB_ENV"
+
       - name: Process one queued transcription job
         run: npm run worker -- next --type transcribe
