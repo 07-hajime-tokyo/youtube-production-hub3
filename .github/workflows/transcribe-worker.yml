@@ -50,11 +50,20 @@ jobs:
         run: python3 -m pip install --upgrade pip -r scripts/requirements-transcribe.txt
 
       - name: Restore YouTube cookies
-        if: ${{ secrets.YOUTUBE_COOKIES_BASE64 != '' }}
         env:
           YOUTUBE_COOKIES_BASE64: ${{ secrets.YOUTUBE_COOKIES_BASE64 }}
+          YOUTUBE_COOKIES_BASE64_1: ${{ secrets.YOUTUBE_COOKIES_BASE64_1 }}
+          YOUTUBE_COOKIES_BASE64_2: ${{ secrets.YOUTUBE_COOKIES_BASE64_2 }}
+          YOUTUBE_COOKIES_BASE64_3: ${{ secrets.YOUTUBE_COOKIES_BASE64_3 }}
+          YOUTUBE_COOKIES_BASE64_4: ${{ secrets.YOUTUBE_COOKIES_BASE64_4 }}
+          YOUTUBE_COOKIES_BASE64_5: ${{ secrets.YOUTUBE_COOKIES_BASE64_5 }}
         run: |
-          printf '%s' "$YOUTUBE_COOKIES_BASE64" | base64 --decode > "$RUNNER_TEMP/youtube-cookies.txt"
+          COOKIE_B64="${YOUTUBE_COOKIES_BASE64:-}${YOUTUBE_COOKIES_BASE64_1:-}${YOUTUBE_COOKIES_BASE64_2:-}${YOUTUBE_COOKIES_BASE64_3:-}${YOUTUBE_COOKIES_BASE64_4:-}${YOUTUBE_COOKIES_BASE64_5:-}"
+          if [ -z "$COOKIE_B64" ]; then
+            echo "No YouTube cookies secret configured."
+            exit 0
+          fi
+          printf '%s' "$COOKIE_B64" | base64 --decode > "$RUNNER_TEMP/youtube-cookies.txt"
           chmod 600 "$RUNNER_TEMP/youtube-cookies.txt"
           echo "YTDLP_COOKIES_PATH=$RUNNER_TEMP/youtube-cookies.txt" >> "$GITHUB_ENV"
 
