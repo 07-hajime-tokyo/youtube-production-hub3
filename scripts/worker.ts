@@ -16,7 +16,10 @@ const DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || "1WXq2-aIGa8eIcVou
 const OBSIDIAN_VAULT_DIR = process.env.OBSIDIAN_VAULT_DIR || "/Users/ha_m/Desktop/Obsidian Vault";
 const GITHUB_TRANSCRIPTS_DIR = process.env.GITHUB_TRANSCRIPTS_DIR || "transcripts";
 const TRANSCRIPT_MARKDOWN_EXPORT = process.env.TRANSCRIPT_MARKDOWN_EXPORT === "1";
+const TRANSCRIBE_PROVIDER = (process.env.TRANSCRIBE_PROVIDER || "local").toLowerCase();
 const TRANSCRIBE_MODEL = process.env.TRANSCRIBE_MODEL || "small";
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
+const GROQ_TRANSCRIBE_MODEL = process.env.GROQ_TRANSCRIBE_MODEL || "whisper-large-v3";
 const YTDLP_BIN = process.env.YTDLP_BIN || "/opt/homebrew/bin/yt-dlp";
 const YTDLP_COOKIES_FROM_BROWSER = process.env.YTDLP_COOKIES_FROM_BROWSER || "";
 const YTDLP_COOKIES_PATH = process.env.YTDLP_COOKIES_PATH || "";
@@ -420,9 +423,67 @@ function downloadAudio(url: string, workDir: string) {
   return { audio, metadata };
 }
 
-function transcribeAudio(audioPath: string, outPath: string, model: string) {
+function transcribeAudioLocal(audioPath: string, outPath: string, model: string) {
   run(PYTHON_BIN, [path.join(process.cwd(), "scripts/transcribe_audio.py"), audioPath, "--out", outPath, "--model", model, "--language", "ja"]);
   return JSON.parse(readFileSync(outPath, "utf8")) as TranscribePayload;
+}
+
+async function transcribeAudioGroq(audioPath: string, model: string) {
+  if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY is required when TRANSCRIBE_PROVIDER=groq");
+
+  const form = new FormData();
+  form.append("file", new Blob([readFileSync(audioPath)]), path.basename(audioPath));
+  form.append("model", model);
+  form.append("language", "ja");
+  form.append("response_format", "verbose_json");
+
+  const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+    },
+    body: form,
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(`Groq transcription failed: ${response.status} ${text}`);
+  }
+
+  const json = JSON.parse(text) as {
+    language?: string;
+    segments?: Array<{ start?: number; end?: number; text?: string }>;
+    text?: string;
+  };
+  const segments =
+    json.segments?.map((segment, index) => ({
+      index,
+      start: Number(segment.start ?? 0),
+      end: Number(segment.end ?? 0),
+      text: String(segment.text ?? "").trim(),
+    })) ?? [];
+
+  return {
+    language: json.language || "ja",
+    language_probability: 1,
+    segments: segments.length
+      ? segments
+      : [
+          {
+            index: 0,
+            start: 0,
+            end: 0,
+            text: String(json.text ?? "").trim(),
+          },
+        ].filter((segment) => segment.text),
+  } satisfies TranscribePayload;
+}
+
+async function transcribeAudio(audioPath: string, outPath: string, model: string) {
+  if (TRANSCRIBE_PROVIDER === "groq") {
+    return transcribeAudioGroq(audioPath, model || GROQ_TRANSCRIBE_MODEL);
+  }
+  return transcribeAudioLocal(audioPath, outPath, model);
 }
 
 async function upsertVideoFromMetadata(supabase: SupabaseClient, metadata: YtDlpMetadata) {
@@ -471,8 +532,8 @@ async function transcribeVideo(payload: { url?: string; videoId?: string; model?
     try {
       const { audio, metadata } = downloadAudio(url, workDir);
       const outJson = path.join(workDir, "segments.json");
-      const model = payload.model || TRANSCRIBE_MODEL;
-      const transcript = transcribeAudio(audio, outJson, model);
+      const model = TRANSCRIBE_PROVIDER === "groq" ? GROQ_TRANSCRIBE_MODEL : payload.model || TRANSCRIBE_MODEL;
+      const transcript = await transcribeAudio(audio, outJson, model);
       const { videoDbId, channelName } = await upsertVideoFromMetadata(supabase, metadata);
       const segments: TranscriptSegment[] = transcript.segments.map((segment) => ({
         start: segment.start,
@@ -490,7 +551,7 @@ async function transcribeVideo(payload: { url?: string; videoId?: string; model?
         summary: null,
         fullText,
         segments,
-        asrModel: model,
+        asrModel: TRANSCRIBE_PROVIDER === "groq" ? `groq:${model}` : model,
         language: transcript.language,
       };
 
@@ -514,7 +575,7 @@ async function transcribeVideo(payload: { url?: string; videoId?: string; model?
             source_url: exportData.url,
             full_text: fullText,
             summary: exportData.summary,
-            asr_model: model,
+            asr_model: exportData.asrModel,
             language: transcript.language,
             obsidian_path: obsidianPath,
             github_path: githubPath,
