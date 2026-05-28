@@ -18,6 +18,8 @@ const GITHUB_TRANSCRIPTS_DIR = process.env.GITHUB_TRANSCRIPTS_DIR || "transcript
 const TRANSCRIPT_MARKDOWN_EXPORT = process.env.TRANSCRIPT_MARKDOWN_EXPORT === "1";
 const TRANSCRIBE_MODEL = process.env.TRANSCRIBE_MODEL || "small";
 const YTDLP_BIN = process.env.YTDLP_BIN || "/opt/homebrew/bin/yt-dlp";
+const YTDLP_COOKIES_FROM_BROWSER = process.env.YTDLP_COOKIES_FROM_BROWSER || "";
+const YTDLP_COOKIES_PATH = process.env.YTDLP_COOKIES_PATH || "";
 const PYTHON_BIN = process.env.PYTHON_BIN || "/usr/bin/python3";
 const WORKER_POLL_INTERVAL_MS = Number(process.env.WORKER_POLL_INTERVAL_MS || 5000);
 const WORKER_ID = process.env.WORKER_ID || "local-worker";
@@ -125,6 +127,12 @@ function run(command: string, args: string[], options?: { cwd?: string }) {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "inherit"],
   }).trim();
+}
+
+function ytDlpCookieArgs() {
+  if (YTDLP_COOKIES_PATH) return ["--cookies", YTDLP_COOKIES_PATH];
+  if (YTDLP_COOKIES_FROM_BROWSER) return ["--cookies-from-browser", YTDLP_COOKIES_FROM_BROWSER];
+  return [];
 }
 
 function sleep(ms: number) {
@@ -391,12 +399,20 @@ async function syncDrive(folderId = DRIVE_FOLDER_ID) {
 }
 
 function fetchYoutubeMetadata(url: string) {
-  const stdout = run(YTDLP_BIN, ["--skip-download", "--dump-json", "--no-playlist", url]);
+  const stdout = run(YTDLP_BIN, ["--skip-download", "--dump-json", "--no-playlist", ...ytDlpCookieArgs(), url]);
   return JSON.parse(stdout) as YtDlpMetadata;
 }
 
 function downloadAudio(url: string, workDir: string) {
-  run(YTDLP_BIN, ["-f", "bestaudio[ext=m4a]/bestaudio/best", "--no-playlist", "-o", path.join(workDir, "%(id)s.%(ext)s"), url]);
+  run(YTDLP_BIN, [
+    "-f",
+    "bestaudio[ext=m4a]/bestaudio/best",
+    "--no-playlist",
+    ...ytDlpCookieArgs(),
+    "-o",
+    path.join(workDir, "%(id)s.%(ext)s"),
+    url,
+  ]);
   const metadata = fetchYoutubeMetadata(url);
   const candidates = [".m4a", ".webm", ".mp4", ".mp3", ".opus"].map((ext) => path.join(workDir, `${metadata.id}${ext}`));
   const audio = candidates.find((candidate) => existsSync(candidate));
