@@ -43,6 +43,11 @@ jobs:
           cache: pip
           cache-dependency-path: scripts/requirements-transcribe.txt
 
+      - name: Setup Deno for yt-dlp
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
