@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRouteUser } from "@/lib/auth";
+import { triggerTranscribeWorkflow } from "@/lib/github-actions";
 import { createYouTubeChangeLog } from "@/lib/queries";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -51,6 +52,11 @@ export async function POST(request: Request) {
     .single();
 
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
+  const workflow = await triggerTranscribeWorkflow().catch((error: unknown) => ({
+    status: "failed" as const,
+    reason: error instanceof Error ? error.message : String(error),
+  }));
+
   await createYouTubeChangeLog({
     action: "enqueue",
     targetType: "worker_job",
@@ -58,7 +64,7 @@ export async function POST(request: Request) {
     title: "文字起こしを投入",
     detail: parsed.data.videoId ?? parsed.data.url ?? "",
     actorEmail: user.email,
-    metadata: parsed.data,
+    metadata: { ...parsed.data, workflow },
   });
-  return NextResponse.json({ jobId: data.id, status: "queued" });
+  return NextResponse.json({ jobId: data.id, status: "queued", workflow });
 }
