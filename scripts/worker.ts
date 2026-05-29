@@ -138,6 +138,10 @@ function ytDlpCookieArgs() {
   return [];
 }
 
+function ytDlpCommonArgs() {
+  return ["--remote-components", "ejs:github", ...ytDlpCookieArgs()];
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -402,7 +406,7 @@ async function syncDrive(folderId = DRIVE_FOLDER_ID) {
 }
 
 function fetchYoutubeMetadata(url: string) {
-  const stdout = run(YTDLP_BIN, ["--skip-download", "--dump-json", "--no-playlist", ...ytDlpCookieArgs(), url]);
+  const stdout = run(YTDLP_BIN, ["--skip-download", "--dump-json", "--no-playlist", ...ytDlpCommonArgs(), url]);
   return JSON.parse(stdout) as YtDlpMetadata;
 }
 
@@ -411,7 +415,7 @@ function downloadAudio(url: string, workDir: string) {
     "-f",
     "bestaudio[ext=m4a]/bestaudio/best",
     "--no-playlist",
-    ...ytDlpCookieArgs(),
+    ...ytDlpCommonArgs(),
     "-o",
     path.join(workDir, "%(id)s.%(ext)s"),
     url,
