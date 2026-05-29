@@ -23,6 +23,7 @@ const GROQ_TRANSCRIBE_MODEL = process.env.GROQ_TRANSCRIBE_MODEL || "whisper-larg
 const YTDLP_BIN = process.env.YTDLP_BIN || "/opt/homebrew/bin/yt-dlp";
 const YTDLP_COOKIES_FROM_BROWSER = process.env.YTDLP_COOKIES_FROM_BROWSER || "";
 const YTDLP_COOKIES_PATH = process.env.YTDLP_COOKIES_PATH || "";
+const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
 const PYTHON_BIN = process.env.PYTHON_BIN || "/usr/bin/python3";
 const WORKER_POLL_INTERVAL_MS = Number(process.env.WORKER_POLL_INTERVAL_MS || 5000);
 const WORKER_ID = process.env.WORKER_ID || "local-worker";
@@ -432,6 +433,24 @@ function transcribeAudioLocal(audioPath: string, outPath: string, model: string)
   return JSON.parse(readFileSync(outPath, "utf8")) as TranscribePayload;
 }
 
+function compressAudioForGroq(audioPath: string, workDir: string) {
+  const outputPath = path.join(workDir, "groq-input.mp3");
+  run(FFMPEG_BIN, [
+    "-y",
+    "-i",
+    audioPath,
+    "-vn",
+    "-ac",
+    "1",
+    "-ar",
+    "16000",
+    "-b:a",
+    "32k",
+    outputPath,
+  ]);
+  return outputPath;
+}
+
 async function transcribeAudioGroq(audioPath: string, model: string) {
   if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY is required when TRANSCRIBE_PROVIDER=groq");
 
@@ -485,7 +504,7 @@ async function transcribeAudioGroq(audioPath: string, model: string) {
 
 async function transcribeAudio(audioPath: string, outPath: string, model: string) {
   if (TRANSCRIBE_PROVIDER === "groq") {
-    return transcribeAudioGroq(audioPath, model || GROQ_TRANSCRIBE_MODEL);
+    return transcribeAudioGroq(compressAudioForGroq(audioPath, path.dirname(outPath)), model || GROQ_TRANSCRIBE_MODEL);
   }
   return transcribeAudioLocal(audioPath, outPath, model);
 }
